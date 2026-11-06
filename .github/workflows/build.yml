@@ -1,0 +1,44 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ principal ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        
+      - name: Create Project
+        run: |
+          mkdir -p app/src/main/java/com/deskdj/serato
+          mkdir -p app/src/main/res/layout
+          echo "include ':app'" > settings.gradle
+          echo "plugins { id 'com.android.application' version '8.2.0' apply false; id 'org.jetbrains.kotlin.android' version '1.9.10' apply false }" > build.gradle
+          echo "plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' } 
+          android { namespace 'com.deskdj.serato'; compileSdk 34; defaultConfig { applicationId 'com.deskdj.serato'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0' }; buildTypes { release { minifyEnabled false } }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }; kotlinOptions { jvmTarget = '17' } } 
+          dependencies { implementation 'androidx.core:core-ktx:1.12.0'; implementation 'androidx.appcompat:appcompat:1.6.1'; implementation 'com.google.android.material:material:1.11.0' }" > app/build.gradle
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="DeskDJ SERATO" android:theme="@android:style/Theme.Black.NoTitleBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+          echo 'package com.deskdj.serato; import android.os.Bundle; import androidx.appcompat.app.AppCompatActivity; import android.widget.*; import android.view.*; public class MainActivity extends AppCompatActivity { protected void onCreate(Bundle b){ super.onCreate(b); LinearLayout l=new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); l.setBackgroundColor(0xFF0A0A0A); TextView t=new TextView(this); t.setText("DeskDJ-SERATO\nDeck A: 120.0 BPM\nDeck B: 120.0 BPM\n[SYNC] [PLAY] [HOT CUE]"); t.setTextColor(0xFFFFFFFF); t.setTextSize(20); l.addView(t); setContentView(l); } }' > app/src/main/java/com/deskdj/serato/MainActivity.java
+
+      - name: Build APK
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.4-bin.zip
+          unzip -q gradle-8.4-bin.zip
+          ./gradle-8.4/bin/gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeskDJ-SERATO-APK
+          path: app/build/outputs/apk/debug/*.apk
